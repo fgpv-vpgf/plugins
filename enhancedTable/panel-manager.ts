@@ -41,7 +41,7 @@ export class PanelManager {
     // gets the updated row range to get as table is scrolled vertically (example "showing 1-10 of 50 entries")
     getScrollRange() {
         let rowRange: string;
-        if (this.tableOptions.api) {
+        if (this.tableOptions && this.tableOptions.api) {
             const topPixel = this.tableOptions.api.getVerticalPixelRange().top;
             const bottomPixel = this.tableOptions.api.getVerticalPixelRange().bottom;
             let firstRow;
@@ -72,26 +72,170 @@ export class PanelManager {
         return rowRange;
     }
 
+    // sets and updates table filters according to layer and symbol visibilities
+    setAndUpdateVisibility() {
+
+        this.setLegendBlock(this.currentTableLayer._mapInstance.legendBlocks.entries);
+
+        // change table filters on layer visibility change
+        this.legendBlock.visibilityChanged.subscribe(visibility => {
+            if (this.tableOptions.api
+                && this.currentTableLayer.visibility === visibility
+                && visibility !== this.visibility) {
+                //code below is only executed when layer visibility changes (not symbology toggles)
+                if (!visibility) {
+                    //if set to invisible: store current filter, and then filter out all visible rows
+                    this.tableOptions.api.validOIDs = undefined;
+                    this.storedFilter = this.tableOptions.api.getFilterModel();
+                    this.prevQuickFilterText = this.quickFilterText;
+                    this.tableOptions.api.setQuickFilter('1=2');
+                    this.quickFilterText = '1=2';
+                    this.visibility = false;
+                    this.tableOptions.api.selectAllFiltered();
+                    this.getFilterStatus();
+                    this.tableOptions.api.deselectAllFiltered();
+                } else {
+                    // if set to visibile: show all rows and clear external filter (because all symbologies will be checked in)
+                    if (this.prevQuickFilterText !== undefined && this.prevQuickFilterText !== '1=2') {
+                        this.tableOptions.api.setQuickFilter(this.prevQuickFilterText);
+                        this.quickFilterText = this.prevQuickFilterText;
+                    }
+                    else {
+                        this.tableOptions.api.setQuickFilter('');
+                        this.quickFilterText = '';
+                    }
+                    this.externalFilter = false;
+                    this.tableOptions.api.onFilterChanged();
+                    if (this.storedFilter !== undefined) {
+                        // if any filter was previously stored reset it
+                        this.tableOptions.api.setFilterModel(this.storedFilter);
+                        this.storedFilter = undefined;
+                    }
+                    this.visibility = true;
+                    this.tableOptions.api.selectAllFiltered();
+                    this.getFilterStatus();
+                    this.tableOptions.api.deselectAllFiltered();
+                }
+            }
+            else if (this.legendBlock.parent.blockType === 'set' && this.legendBlock.visibility === visibility) {
+                // sets don't follow the same logic, the layer visibility changes after the block is selected/unselected so above logic won't work
+                if (!visibility) {
+                    this.storedFilter = this.tableOptions.api.getFilterModel();
+                    this.tableOptions.api.setQuickFilter('1=2');
+                    this.quickFilterText = '1=2';
+                    this.visibility = false;
+                } else {
+                    this.tableOptions.api.setQuickFilter('');
+                    this.quickFilterText = '';
+                    if (this.storedFilter !== undefined) {
+                        // if any filter was previously stored reset it
+                        this.tableOptions.api.setFilterModel(this.storedFilter);
+                        this.storedFilter = undefined;
+                    }
+                    this.visibility = true;
+                }
+            }
+        });
+
+        const legendBlock = this.legendBlock;
+
+        if (this.tableOptions.api) {
+            let panelManager = this;
+            // this portion gets called when the table is first opened
+
+            this.tableOptions.isExternalFilterPresent = function () {
+                return panelManager.externalFilter && legendBlock.validOIDs !== undefined;
+            }
+
+            this.tableOptions.doesExternalFilterPass = function (node) {
+                return legendBlock.validOIDs.includes(node.data.OBJECTID);
+            }
+
+            if (!this.currentTableLayer.visibility) {
+                // if  layer is invisible, table needs to show zero entries
+                this.tableOptions.api.setQuickFilter('1=2');
+                this.quickFilterText = '1=2';
+            } else if (legendBlock.validOIDs !== undefined) {
+                // if validOIDs are defined, filter symbologies
+                this.externalFilter = true;
+                this.tableOptions.api.onFilterChanged();
+                this.tableOptions.api.selectAllFiltered();
+                this.getFilterStatus();
+                this.tableOptions.api.deselectAllFiltered();
+            }
+        }
+
+        // when one of the symbols are toggled on/off, filter the table
+        legendBlock.symbolVisibilityChanged.subscribe(visibility => {
+            if (visibility === undefined && this.externalFilter !== false && legendBlock.symbDefinitionQuery === undefined) {
+                // this ensures external filter is turned off in the scenario where the last symbology toggle is selected
+                this.externalFilter = false;
+                this.tableOptions.api.onFilterChanged();
+                this.tableOptions.api.selectAllFiltered();
+                this.getFilterStatus();
+                this.tableOptions.api.deselectAllFiltered();
+            } else if (visibility !== undefined) {
+                // this ensures proper symbologies are filtered out
+                this.externalFilter = true;
+                if (this.quickFilterText === '1=2') {
+                    // if this is a symbol being toggled on which sets layer visibility to true
+                    if (this.prevQuickFilterText === undefined) {
+                        //clear the undefined quick filter if no quick filter was stored
+                        this.tableOptions.api.setQuickFilter('');
+                        this.quickFilterText = '';
+                    } else {
+                        // clear the undefined quick filter and restore the previous quick filter
+                        this.tableOptions.api.setQuickFilter(this.prevQuickFilterText);
+                        this.quickFilterText = this.prevQuickFilterText;
+                        this.prevQuickFilterText = undefined
+                    }
+
+                    if (this.storedFilter !== undefined) {
+                        // if any column filters were previously stored, restore them
+                        this.tableOptions.api.setFilterModel(this.storedFilter);
+                        this.storedFilter = undefined;
+                    }
+                }
+                this.tableOptions.api.onFilterChanged();
+                this.tableOptions.api.selectAllFiltered();
+                this.getFilterStatus();
+                this.tableOptions.api.deselectAllFiltered();
+            }
+        });
+    }
+
+    // recursively find and set the legend block for the layer
+    setLegendBlock(legendEntriesList: any) {
+        legendEntriesList.forEach(entry => {
+            if (entry.proxyWrapper !== undefined && this.currentTableLayer._layerProxy === entry.proxyWrapper.proxy) {
+                this.legendBlock = entry;
+            }
+            else if (entry.children || entry.entries) {
+                this.setLegendBlock(entry.children || entry.entries);
+            }
+        });
+    }
+
+    setFilterandScrollWatch() {
+        let that = this;
+        this.tableOptions.onFilterChanged = function (event) {
+            if (that.tableOptions && that.tableOptions.api) {
+                that.tableOptions.api.selectAllFiltered();
+                that.getFilterStatus();
+                that.tableOptions.api.deselectAllFiltered();
+            }
+        }
+        this.tableOptions.onBodyScroll = function (event) {
+            that.getScrollRange();
+        }
+    }
+
     open(tableOptions: any, layer: any) {
         if (this.currentTableLayer === layer) {
             this.close();
         } else {
             this.tableOptions = tableOptions;
-
-            let panelManager = this;
-
-            // when filter is changed, get the correct filter status
-            this.tableOptions.onFilterChanged = function (event) {
-                if (panelManager.tableOptions.api) {
-                    panelManager.tableOptions.api.selectAllFiltered();
-                    panelManager.getFilterStatus();
-                    panelManager.tableOptions.api.deselectAllFiltered();
-                }
-            }
-
-            this.tableOptions.onBodyScroll = function (event) {
-                panelManager.getScrollRange();
-            }
+            this.setFilterandScrollWatch();
 
             let controls = this.header;
             controls = [new this.panel.container('<span style="flex: 1;"></span>'), ...controls];
@@ -103,7 +247,6 @@ export class PanelManager {
             this.currentTableLayer = layer;
             this.tableContent.empty();
             new Grid(this.tableContent[0], tableOptions);
-            this.panel.open();
             this.getScrollRange();
 
             this.tableOptions.onGridReady = () => {
@@ -112,6 +255,8 @@ export class PanelManager {
                 let colApi = this.tableOptions.columnApi
                 colApi.getDisplayedColAfter(colApi.getColumn('rvInteractive')).setSort("asc");
             };
+            this.setAndUpdateVisibility();
+            this.panel.open();
         }
     }
 
@@ -219,11 +364,14 @@ export class PanelManager {
             this.searchText = '';
             this.updatedSearchText = function () {
                 that.tableOptions.api.setQuickFilter(this.searchText);
+                that.quickFilterText = this.searchText;
+                that.tableOptions.api.selectAllFiltered();
+                that.getFilterStatus();
+                that.tableOptions.api.deselectAllFiltered();
             };
             this.clearSearch = function () {
                 this.searchText = '';
                 this.updatedSearchText();
-                that.getFilterStatus();
             };
         });
 
@@ -299,6 +447,10 @@ export interface PanelManager {
     currentTableLayer: any;
     maximized: boolean;
     tableOptions: any;
+    storedFilter: any;
+    legendBlock: any;
+    externalFilter: boolean;
+    quickFilterText: any;
+    prevQuickFilterText: any;
+    visibility: boolean;
 }
-
-PanelManager.prototype.maximized = false;

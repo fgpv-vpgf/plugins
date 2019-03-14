@@ -35,6 +35,7 @@ export class PanelManager {
                 clearInterval(this.toastInterval);
             }
             this.currentTableLayer = undefined;
+            this.mapApi.mapI.externalPanel(undefined);
             close();
         }
 
@@ -175,8 +176,10 @@ export class PanelManager {
     setSize() {
         if (this.maximized) {
             this.panel.element[0].classList.add('full');
+            this.mapApi.mapI.externalPanel($('#enhancedTable'));
         } else {
             this.panel.element[0].classList.remove('full');
+            this.mapApi.mapI.externalPanel(undefined);
         }
         this.panel.panelContents.css({
             margin: 0,

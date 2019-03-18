@@ -57,7 +57,7 @@ export class PanelManager {
         });
     }
 
-    open(tableOptions: any, layer: any) {
+    open(tableOptions: any, layer: any, tableBuilder: any) {
         if (this.currentTableLayer === layer) {
             this.close();
         } else {
@@ -116,7 +116,7 @@ export class PanelManager {
             new DetailsAndZoomButtons(this);
             new Grid(this.tableContent[0], tableOptions);
             this.configManager.setDefaultGlobalSearchFilter();
-            this.panel.open();
+
             this.panelStatusManager.getScrollRange();
             this.panelRowsManager.initObservers();
 
@@ -129,6 +129,18 @@ export class PanelManager {
                     // set sort of first column to ascending by default if sort isn't specified
                     col.setSort("asc");
                 }
+
+                // stop loading panel from opening, if we are about to open enhancedTable
+                clearTimeout(tableBuilder.loadingTimeout);
+
+                if (!tableBuilder.loadingPanel.hidden) {
+                    //if loading panel was opened, make sure it stays on for at least 400 ms
+                    setTimeout(() => { this.mapApi.deletePanel('enhancedTableLoader') }, 400);
+                } else {
+                    this.mapApi.deletePanel('enhancedTableLoader');
+                }
+
+                this.panel.open();
             };
 
             // Set up grid panel accessibility

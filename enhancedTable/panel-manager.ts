@@ -29,7 +29,10 @@ export class PanelManager {
         // Enhance panel's close function so panel close button destroys table properly
         let close = this.panel.close.bind(this.panel);
         this.panel.close = () => {
-            removeAccessibilityListeners(this.panel.element[0], this.gridBody);
+            if (this.gridBody !== undefined) {
+                removeAccessibilityListeners(this.panel.element[0], this.gridBody);
+            }
+            this.panelStateManager.isOpen = false;
             this.panelRowsManager.destroyObservers();
             if (this.toastInterval !== undefined) {
                 clearInterval(this.toastInterval);
@@ -57,7 +60,7 @@ export class PanelManager {
         });
     }
 
-    open(tableOptions: any, layer: any) {
+    open(tableOptions: any, layer: any, tableBuilder: any) {
         if (this.currentTableLayer === layer) {
             this.close();
         } else {
@@ -116,7 +119,7 @@ export class PanelManager {
             new DetailsAndZoomButtons(this);
             new Grid(this.tableContent[0], tableOptions);
             this.configManager.setDefaultGlobalSearchFilter();
-            this.panel.open();
+
             this.panelStatusManager.getScrollRange();
             this.panelRowsManager.initObservers();
 
@@ -129,32 +132,47 @@ export class PanelManager {
                     // set sort of first column to ascending by default if sort isn't specified
                     col.setSort("asc");
                 }
+
+                // Set up grid panel accessibility
+                // Link clicked legend element to the opened table
+                const sourceEl = $(document).find(`[legend-block-id="${this.legendBlock.id}"] button`).filter(':visible').first();
+                (<EnhancedJQuery><unknown>$(sourceEl)).link($(document).find(`#enhancedTable`));
+
+                // Set up grid <-> filter accessibility
+                this.gridBody = this.panel.element[0].getElementsByClassName('ag-body')[0];
+                this.gridBody.tabIndex = 0; // make grid container tabable
+                initAccessibilityListeners(this.panel.element[0], this.gridBody, this.tableOptions);
+
+                this.panelStatusManager.getFilterStatus();
+
+                this.tableOptions.columnDefs.forEach(column => {
+                    if (column.floatingFilterComponentParams.defaultValue !== undefined && this.notVisible[column.field] === true) {
+                        // we temporarily showed some hidden columns with default values (so that table would get filtered properly)
+                        // now toggle them to hidden to respect config specifications
+                        let matchingCol = this.columnMenuCtrl.columnVisibilities.find(col => col.id === column.field);
+                        this.columnMenuCtrl.toggleColumn(matchingCol);
+                    }
+                });
+
+                // stop loading panel from opening, if we are about to open enhancedTable
+                clearTimeout(tableBuilder.loadingTimeout);
+
+                if (!tableBuilder.loadingPanel.hidden) {
+                    //if loading panel was opened, make sure it stays on for at least 400 ms
+                    setTimeout(() => { this.mapApi.deletePanel('enhancedTableLoader') }, 400);
+                } else {
+                    this.mapApi.deletePanel('enhancedTableLoader');
+                }
+
+                this.panel.open();
             };
-
-            // Set up grid panel accessibility
-            // Link clicked legend element to the opened table
-            const sourceEl = $(document).find(`[legend-block-id="${this.legendBlock.id}"] button`).filter(':visible').first();
-            (<EnhancedJQuery><unknown>$(sourceEl)).link($(document).find(`#enhancedTable`));
-
-            // Set up grid <-> filter accessibility
-            this.gridBody = this.panel.element[0].getElementsByClassName('ag-body')[0];
-            this.gridBody.tabIndex = 0; // make grid container tabable
-            initAccessibilityListeners(this.panel.element[0], this.gridBody, this.tableOptions);
         }
 
-        this.panelStatusManager.getFilterStatus();
 
-        this.tableOptions.columnDefs.forEach(column => {
-            if (column.floatingFilterComponentParams.defaultValue !== undefined && this.notVisible[column.field] === true) {
-                // we temporarily showed some hidden columns with default values (so that table would get filtered properly)
-                // now toggle them to hidden to respect config specifications
-                let matchingCol = this.columnMenuCtrl.columnVisibilities.find(col => col.id === column.field);
-                this.columnMenuCtrl.toggleColumn(matchingCol);
-            }
-        });
     }
 
     close() {
+        this.panelStateManager.isOpen = false;
         this.panel.close();
     }
 

@@ -181,16 +181,17 @@ class CoordInfo {
             this.panel = this.api.createPanel('coord-info');
             this.panel.position([0, 0], [400, this.api.div.height() - (48 + 20)], true);
 
-            let closeBtn = new this.panel.button('X');
+            // 'true' parameter for panel.button, setControls, and setBody initiates digest cycle
+            let closeBtn = new this.panel.button('X', true);
             closeBtn.element.css('float', 'right');
             this.panel.setControls([
                 `<h2 style="font-weight: normal;display:inline;vertical-align:middle">{{ 't.title' | translate }}</h2>`,
                 closeBtn
-            ]);
+            ], true);
         } else {
             this.panel.close();
         }
-        this.panel.setBody(output);
+        this.panel.setBody(output, true);
 
         this.panel.open();
     }

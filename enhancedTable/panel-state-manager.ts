@@ -1,5 +1,3 @@
-import { PanelManager } from './panel-manager';
-
 /**
  * Saves relevant enhancedTable states so that it can be reset on reload/reopen. A PanelStateManager is linked to a BaseLayer.
  * setters are called each time enhancedTable states are updated, getters are called each time enhancedTable is reloaded/reopened.
@@ -9,12 +7,12 @@ import { PanelManager } from './panel-manager';
  *      - whether table maximized is in maximized or split view
  */
 export class PanelStateManager {
-
     constructor(baseLayer: any) {
         this.baseLayer = baseLayer;
         this.isMaximized = baseLayer.table.maximize || false;
         this.filterByExtent = false;
         this.columnFilters = {};
+        this.columnState = null;
     }
 
     getColumnFilter(colDefField: any): any {
@@ -32,7 +30,6 @@ export class PanelStateManager {
     get maximized(): boolean {
         return this.isMaximized;
     }
-
 }
 
 export interface PanelStateManager {
@@ -41,4 +38,5 @@ export interface PanelStateManager {
     filterByExtent: boolean;
     rows: any;
     columnFilters: any;
+    columnState: any;
 }

@@ -1,12 +1,23 @@
 import { Grid } from 'ag-grid-community';
-import { SEARCH_TEMPLATE, MENU_TEMPLATE, CLEAR_FILTERS_TEMPLATE, COLUMN_VISIBILITY_MENU_TEMPLATE, MOBILE_MENU_TEMPLATE, MOBILE_MENU_BTN_TEMPLATE, RECORD_COUNT_TEMPLATE, APPLY_TO_MAP_TEMPLATE, TABLE_UPDATE_TEMPLATE } from './templates';
+import {
+    SEARCH_TEMPLATE,
+    MENU_TEMPLATE,
+    CLEAR_FILTERS_TEMPLATE,
+    COLUMN_VISIBILITY_MENU_TEMPLATE,
+    MOBILE_MENU_TEMPLATE,
+    MOBILE_MENU_BTN_TEMPLATE,
+    RECORD_COUNT_TEMPLATE,
+    APPLY_TO_MAP_TEMPLATE,
+    TABLE_UPDATE_TEMPLATE
+} from './templates';
 import { DetailsAndZoomButtons } from './details-and-zoom-buttons';
 import { PanelRowsManager } from './panel-rows-manager';
 import { PanelStatusManager } from './panel-status-manager';
 import { removeAccessibilityListeners, initAccessibilityListeners } from './grid-accessibility';
 import { ColumnConfigManager } from './config-manager';
 import { PanelStateManager } from './panel-state-manager';
-import { PRINT_TABLE } from './templates'
+import { PRINT_TABLE } from './templates';
+import { ColumnState } from 'ag-grid-community/dist/lib/columnController/columnController';
 
 /**
  * Creates and manages one api panel instance to display the table in the ramp viewer. One panelManager is created for each map instance on the page.
@@ -14,9 +25,8 @@ import { PRINT_TABLE } from './templates'
  * This class also contains custom angular controllers to enable searching, printing, exporting, and more from angular material panel controls.
  */
 export class PanelManager {
-
     constructor(mapApi: any) {
-        this.notVisible = {}
+        this.notVisible = {};
         this.mapApi = mapApi;
         this.tableContent = $(`<div rv-focus-exempt></div>`);
         this.panel = this.mapApi.createPanel('enhancedTable');
@@ -37,7 +47,7 @@ export class PanelManager {
             this.currentTableLayer = undefined;
             this.mapApi.mapI.externalPanel(undefined);
             close();
-        }
+        };
 
         // add mobile menu to the dom
         let mobileMenuTemplate = $(MOBILE_MENU_TEMPLATE)[0];
@@ -45,10 +55,21 @@ export class PanelManager {
         this.panel.panelControls.after(mobileMenuTemplate);
     }
 
+    set panelStateManager(newPanelStateManager: PanelStateManager) {
+        // store the column state before replacing the state manager
+        if (this._panelStateManager) {
+            this._panelStateManager.columnState = this.tableOptions.columnApi.getColumnState();
+        }
+        this._panelStateManager = newPanelStateManager;
+    }
+
+    get panelStateManager() {
+        return this._panelStateManager;
+    }
+
     setLegendBlock(block) {
         this.legendBlock = block;
     }
-
 
     open(tableOptions: any, layer: any) {
         if (this.currentTableLayer === layer) {
@@ -61,9 +82,9 @@ export class PanelManager {
             this.tableOptions = tableOptions;
 
             // set filter change flag to true
-            this.tableOptions.onFilterChanged = (event) => {
+            this.tableOptions.onFilterChanged = event => {
                 this.filtersChanged = true;
-            }
+            };
 
             this.panelStatusManager = new PanelStatusManager(this);
             this.panelStatusManager.setFilterAndScrollWatch();
@@ -108,25 +129,34 @@ export class PanelManager {
             new DetailsAndZoomButtons(this);
             new Grid(this.tableContent[0], tableOptions);
             this.configManager.setDefaultGlobalSearchFilter();
+            // if theres stored column state give it to the table
+            if (this.panelStateManager.columnState) {
+                this.tableOptions.columnApi.setColumnState(this.panelStateManager.columnState);
+            }
             this.panel.open();
             this.panelStatusManager.getScrollRange();
             this.panelRowsManager.initObservers();
 
             this.tableOptions.onGridReady = () => {
+                // sync column state to visibility list
+                this.updateColumnVisibility();
                 this.autoSizeToMaxWidth();
                 this.sizeColumnsToFitIfNeeded();
-                let colApi = this.tableOptions.columnApi
+                let colApi = this.tableOptions.columnApi;
                 let col = colApi.getDisplayedColAfter(colApi.getColumn('zoom'));
                 if (col !== (undefined || null) && col.sort === undefined) {
                     // set sort of first column to ascending by default if sort isn't specified
-                    col.setSort("asc");
+                    col.setSort('asc');
                 }
             };
 
             // Set up grid panel accessibility
             // Link clicked legend element to the opened table
-            const sourceEl = $(document).find(`[legend-block-id="${this.legendBlock.id}"] button`).filter(':visible').first();
-            (<EnhancedJQuery><unknown>$(sourceEl)).link($(document).find(`#enhancedTable`));
+            const sourceEl = $(document)
+                .find(`[legend-block-id="${this.legendBlock.id}"] button`)
+                .filter(':visible')
+                .first();
+            (<EnhancedJQuery>(<unknown>$(sourceEl))).link($(document).find(`#enhancedTable`));
 
             // Set up grid <-> filter accessibility
             this.gridBody = this.panel.element[0].getElementsByClassName('ag-body')[0];
@@ -175,7 +205,6 @@ export class PanelManager {
         // create a printable HTML table with only rows and columns that
         // are currently displayed.
         return PRINT_TABLE(this.configManager.title, columns, rows);
-
     }
 
     setSize() {
@@ -196,7 +225,7 @@ export class PanelManager {
      * Auto size all columns but check the max width
      * Note: Need a custom function here since setting maxWidth prevents
      *       `sizeColumnsToFit()` from filling the entire panel width
-    */
+     */
     autoSizeToMaxWidth(columns?: Array<any>) {
         const maxWidth = 400;
         columns = columns ? columns : this.tableOptions.columnApi.getAllColumns();
@@ -206,7 +235,7 @@ export class PanelManager {
                 this.tableOptions.columnApi.setColumnWidth(c, maxWidth);
             }
         });
-    };
+    }
 
     /**
      * Check if columns don't take up entire grid width. If not size the columns to fit.
@@ -225,6 +254,18 @@ export class PanelManager {
             }
             this.tableOptions.api.sizeColumnsToFit();
         }
+    }
+
+    /**
+     * Updates the column visibility list used for the columnVisibility control
+     */
+    updateColumnVisibility(): void {
+        const columnStates: ColumnState[] = this.tableOptions.columnApi.getColumnState();
+        this.columnMenuCtrl.columnVisibilities.forEach(column => {
+            column.visibility = !columnStates.find(columnState => {
+                return column.id === columnState.colId;
+            }).hide;
+        });
     }
 
     get id(): string {
@@ -253,9 +294,8 @@ export class PanelManager {
 
         if (this.configManager.globalSearchEnabled) {
             this.mobileMenuScope.searchEnabled = true;
-            return [mobileMenuBtn, searchBar, columnVisibilityMenuBtn, clearFiltersBtn, applyToMapBtn, menuBtn, closeBtn]
-        }
-        else {
+            return [mobileMenuBtn, searchBar, columnVisibilityMenuBtn, clearFiltersBtn, applyToMapBtn, menuBtn, closeBtn];
+        } else {
             this.mobileMenuScope.searchEnabled = false;
             return [mobileMenuBtn, columnVisibilityMenuBtn, clearFiltersBtn, applyToMapBtn, menuBtn, closeBtn];
         }
@@ -263,8 +303,8 @@ export class PanelManager {
 
     angularHeader() {
         const that = this;
-        this.mapApi.agControllerRegister('ToastCtrl', function ($scope, $mdToast, $rootElement) {
-            that.showToast = function () {
+        this.mapApi.agControllerRegister('ToastCtrl', function($scope, $mdToast, $rootElement) {
+            that.showToast = function() {
                 if ($rootElement.find('.table-toast').length === 0) {
                     $mdToast.show({
                         template: TABLE_UPDATE_TEMPLATE,
@@ -284,10 +324,10 @@ export class PanelManager {
             $scope.closeToast = () => $mdToast.hide();
         });
 
-        this.mapApi.agControllerRegister('SearchCtrl', function () {
+        this.mapApi.agControllerRegister('SearchCtrl', function() {
             that.searchText = that.configManager.defaultGlobalSearch;
             this.searchText = that.searchText ? that.searchText : '';
-            this.updatedSearchText = function () {
+            this.updatedSearchText = function() {
                 that.searchText = this.searchText;
                 // don't filter unless there are at least 3 characters
                 if (this.searchText.length > 2) {
@@ -301,7 +341,7 @@ export class PanelManager {
                 that.panelStatusManager.getFilterStatus();
                 that.tableOptions.api.deselectAllFiltered();
             };
-            this.clearSearch = function () {
+            this.clearSearch = function() {
                 that.searchText = '';
                 this.searchText = that.searchText;
                 this.updatedSearchText();
@@ -311,7 +351,7 @@ export class PanelManager {
             that.clearGlobalSearch = this.clearSearch.bind(this);
         });
 
-        this.mapApi.agControllerRegister('MenuCtrl', function () {
+        this.mapApi.agControllerRegister('MenuCtrl', function() {
             this.appID = that.mapApi.id;
             this.maximized = that.maximized ? 'true' : 'false';
             this.showFilter = !!that.tableOptions.floatingFilter;
@@ -320,7 +360,7 @@ export class PanelManager {
 
             // sets the table size, either split view or full height
             // saves the set size to PanelStateManager
-            this.setSize = function (value) {
+            this.setSize = function(value) {
                 that.panelStateManager.maximized = value === 'true' ? true : false;
                 !that.maximized ? that.mapApi.mapI.externalPanel(undefined) : that.mapApi.mapI.externalPanel($('#enhancedTable'));
                 that.maximized = value === 'true' ? true : false;
@@ -329,23 +369,23 @@ export class PanelManager {
             };
 
             // print button has been clicked
-            this.print = function () {
+            this.print = function() {
                 that.onBtnPrint();
             };
 
             // export button has been clicked
-            this.export = function () {
+            this.export = function() {
                 that.onBtnExport();
             };
 
             // Hide filters button has been clicked
-            this.toggleFilters = function () {
+            this.toggleFilters = function() {
                 that.tableOptions.floatingFilter = this.showFilter;
                 that.tableOptions.api.refreshHeader();
             };
 
             // Sync filterByExtent
-            this.filterExtentToggled = function () {
+            this.filterExtentToggled = function() {
                 that.panelStateManager.filterByExtent = this.filterByExtent;
 
                 // On toggle, filter by extent or remove the extent filter
@@ -357,10 +397,9 @@ export class PanelManager {
             };
         });
 
-        this.mapApi.agControllerRegister('ClearFiltersCtrl', function () {
+        this.mapApi.agControllerRegister('ClearFiltersCtrl', function() {
             // clear all column filters
-            this.clearFilters = function () {
-
+            this.clearFilters = function() {
                 const columns = Object.keys(that.tableOptions.api.getFilterModel());
                 let newFilterModel = {};
 
@@ -383,11 +422,11 @@ export class PanelManager {
             // determine if there are any active column filters
             // returns true if there are no active column filters, false otherwise
             // this determines if Clear Filters button is disabled (when true) or enabled (when false)
-            this.noActiveFilters = function () {
+            this.noActiveFilters = function() {
                 if (that.tableOptions.api !== undefined) {
                     const columns = Object.keys(that.tableOptions.api.getFilterModel());
                     // if there is a non static column fiter, the clearFilters button is enabled
-                    let noFilters = !columns.some((col) => {
+                    let noFilters = !columns.some(col => {
                         const columnConfigManager = new ColumnConfigManager(that.configManager, col);
                         return !columnConfigManager.isFilterStatic;
                     });
@@ -396,17 +435,17 @@ export class PanelManager {
                 } else {
                     return true;
                 }
-            }
+            };
         });
 
-        this.mapApi.agControllerRegister('ApplyToMapCtrl', function () {
+        this.mapApi.agControllerRegister('ApplyToMapCtrl', function() {
             // returns true if a filter has been changed since the last
-            this.filtersChanged = function () {
+            this.filtersChanged = function() {
                 return that.filtersChanged;
             };
 
             // apply filters to map
-            this.applyToMap = function () {
+            this.applyToMap = function() {
                 const filter = that.legendBlock.proxyWrapper.filterState;
                 filter.setSql(filter.coreFilterTypes.GRID, getFiltersQuery());
                 that.filtersChanged = false;
@@ -421,7 +460,8 @@ export class PanelManager {
                 });
                 if (that.searchText) {
                     const globalSearchVal = globalSearchToSql();
-                    if (globalSearchVal) { // will be an empty string if there are no visible rows
+                    if (globalSearchVal) {
+                        // will be an empty string if there are no visible rows
                         colStrs.push(globalSearchVal);
                     }
                 }
@@ -440,7 +480,7 @@ export class PanelManager {
                             if (val !== '') {
                                 if (that.configManager.lazyFilterEnabled) {
                                     const filterVal = `*${val}`;
-                                    val = filterVal.split(" ").join("*");
+                                    val = filterVal.split(' ').join('*');
                                 }
                                 return `UPPER(${col}) LIKE \'${val.replace(/\*/g, '%').toUpperCase()}%\'`;
                             }
@@ -481,10 +521,20 @@ export class PanelManager {
             // convert global search to SQL string filter of columns excluding unfiltered columns
             function globalSearchToSql(): string {
                 let val = that.searchText.replace(/'/g, "''");
-                const filterVal = `%${val.replace(/\*/g, '%').split(" ").join("%").toUpperCase()}`;
-                const re = new RegExp(`.*${val.split(" ").join(".*").toUpperCase()}`);
+                const filterVal = `%${val
+                    .replace(/\*/g, '%')
+                    .split(' ')
+                    .join('%')
+                    .toUpperCase()}`;
+                const re = new RegExp(
+                    `.*${val
+                        .split(' ')
+                        .join('.*')
+                        .toUpperCase()}`
+                );
                 const sortedRows = that.tableOptions.api.rowModel.rowsToDisplay;
-                const columns = that.tableOptions.columnApi.getAllDisplayedColumns()
+                const columns = that.tableOptions.columnApi
+                    .getAllDisplayedColumns()
                     .filter(column => column.colDef.filter === 'agTextColumnFilter');
                 columns.splice(0, 3);
                 let filteredColumns = [];
@@ -499,21 +549,23 @@ export class PanelManager {
             }
         });
 
-        this.mapApi.agControllerRegister('ColumnVisibilityMenuCtrl', function () {
+        this.mapApi.agControllerRegister('ColumnVisibilityMenuCtrl', function() {
             that.columnMenuCtrl = this;
             this.columns = that.tableOptions.columnDefs;
             this.columnVisibilities = this.columns
                 .filter(element => element.headerName)
                 .map(element => {
-                    return ({ id: element.field, title: element.headerName, visibility: !element.hide });
+                    return { id: element.field, title: element.headerName, visibility: !element.hide };
                 })
                 .sort((firstEl, secondEl) => firstEl['title'].localeCompare(secondEl['title']));
 
             // toggle column visibility
-            this.toggleColumn = function (col) {
-                col.visibility = !col.visibility;
+            this.toggleColumn = function(col) {
+                const column = that.tableOptions.columnApi.getColumn(col.id);
 
-                that.tableOptions.columnApi.setColumnVisible(col.id, col.visibility);
+                col.visibility = !column.visible;
+
+                that.tableOptions.columnApi.setColumnVisible(col.id, !column.visible);
 
                 // on showing a column resize to autowidth then shrink columns that are too wide
                 if (col.visibility) {
@@ -525,11 +577,11 @@ export class PanelManager {
             };
         });
 
-        this.mapApi.agControllerRegister('MobileMenuCtrl', function () {
+        this.mapApi.agControllerRegister('MobileMenuCtrl', function() {
             that.mobileMenuScope.visible = false;
             that.mobileMenuScope.sizeDisabled = true;
 
-            this.toggleMenu = function () {
+            this.toggleMenu = function() {
                 that.mobileMenuScope.visible = !that.mobileMenuScope.visible;
             };
         });
@@ -552,7 +604,7 @@ export interface PanelManager {
     configManager: any;
     mobileMenuScope: MobileMenuScope;
     recordCountScope: RecordCountScope;
-    panelStateManager: PanelStateManager;
+    _panelStateManager: PanelStateManager;
     searchText: string;
     filterByExtent: boolean;
     filtersChanged: boolean;

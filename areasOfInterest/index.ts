@@ -61,7 +61,15 @@ class AreasOfInterest {
             return;
         }
 
-        this.panel = this.api.createPanel('area-of-interest');
+        this.panel = this.api.newPanel('area-of-interest');
+
+        this.panel.element.css({
+            width: '400px'
+        });
+
+        if (!this.config.noPicture) {
+            this.panel.body.css('padding', '0px');
+        }
 
         this.panel.opening.subscribe(() => {
             this.button.isActive = true;
@@ -70,19 +78,11 @@ class AreasOfInterest {
             this.button.isActive = false;
         });
 
-        this.panel.position([420, 0], [720, this.api.div.height() - (48 + 20)], true);
 
-        if (!this.config.noPicture) {
-            this.panel.panelBody.css('padding', '0px');
-        }
+        let closeBtn = this.panel.header.closeButton;
+        this.panel.header.title = `{{ 'plugins.areasOfInterest.title' | translate }}`;
 
-        let closeBtn = new this.panel.button('X');
-        closeBtn.element.css('float', 'right');
-        this.panel.setControls([
-            `<h2 style="font-weight: normal;display:inline;vertical-align:middle">{{ 'plugins.areasOfInterest.title' | translate }}</h2>`,
-            closeBtn
-        ]);
-        this.panel.setBody(bodyElement);
+        this.panel.body = bodyElement;
         this.panel.open();
     }
 }

@@ -8,7 +8,7 @@ import { PanelStateManager } from './panel-state-manager';
  */
 export declare class PanelManager {
     constructor(mapApi: any);
-    setLegendBlock(legendEntriesList: any): void;
+    setLegendBlock(block: any): void;
     open(tableOptions: any, layer: any): void;
     close(): void;
     onBtnExport(): void;

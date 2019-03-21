@@ -61,11 +61,13 @@ class AreasOfInterest {
             return;
         }
 
-        this.panel = this.api.newPanel('area-of-interest');
+        this.panel = this.api.panels.create('area-of-interest');
 
         this.panel.element.css({
             width: '400px'
         });
+
+        this.panel.element.addClass('mobile-fullscreen');
 
         if (!this.config.noPicture) {
             this.panel.body.css('padding', '0px');
@@ -80,7 +82,7 @@ class AreasOfInterest {
 
 
         let closeBtn = this.panel.header.closeButton;
-        this.panel.header.title = `{{ 'plugins.areasOfInterest.title' | translate }}`;
+        this.panel.header.title = 'plugins.areasOfInterest.title';
 
         this.panel.body = bodyElement;
         this.panel.open();

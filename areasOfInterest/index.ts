@@ -49,6 +49,10 @@ class AreasOfInterest {
         this.makePanel(topElement);
     }
 
+    destroy() {
+        this.panel = this.panel.destroy();
+    }
+
     onMenuItemClick() {
         return () => {
             this.button.isActive ? this.panel.close() : this.panel.open();
@@ -79,7 +83,6 @@ class AreasOfInterest {
         this.panel.closing.subscribe(() => {
             this.button.isActive = false;
         });
-
 
         let closeBtn = this.panel.header.closeButton;
         this.panel.header.title = 'plugins.areasOfInterest.title';

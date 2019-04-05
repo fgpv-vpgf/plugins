@@ -161,7 +161,6 @@ export class PanelManager {
 
                 // stop loading panel from opening, if we are about to open enhancedTable
                 clearTimeout(tableBuilder.loadingTimeout);
-
                 if (tableBuilder.loadingPanel.isOpen) {
                     //if loading panel was opened, make sure it stays on for at least 400 ms
                     setTimeout(() => {

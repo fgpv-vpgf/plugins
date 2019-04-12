@@ -20,12 +20,8 @@ export class CustomHeader {
         this.moveRightButton = this.eGui.querySelector('.move-right');
 
         // progress sort on header title click
-        this.headerButton.addEventListener('click', (event: MouseEvent) => {
-            this.agParams.progressSort(event.shiftKey);
-        });
-        this.headerButton.addEventListener('touchstart', (event: TouchEvent) => {
-            this.agParams.progressSort(event.shiftKey);
-        });
+        this.headerButton.addEventListener('click', this.progressSort);
+        this.headerButton.addEventListener('touchstart', this.progressSort);
 
         // move column left or right on button click
         let moveLeftListener = this.moveLeft.bind(this);
@@ -53,12 +49,8 @@ export class CustomHeader {
         let onSortChangedListener = this.onSortChanged.bind(this);
         let onColumnReorderListener = this.onColumnReorder.bind(this);
 
-        this.headerButton.removeEventListener('click', (event: MouseEvent) => {
-            this.agParams.progressSort(event.shiftKey);
-        });
-        this.headerButton.removeEventListener('touchstart', (event: TouchEvent) => {
-            this.agParams.progressSort(event.shiftKey);
-        });
+        this.headerButton.removeEventListener('click', this.progressSort);
+        this.headerButton.removeEventListener('touchstart', this.progressSort);
 
         this.moveLeftButton.removeEventListener('click', moveLeftListener);
         this.moveRightButton.removeEventListener('click', moveRightListener);
@@ -88,6 +80,7 @@ export class CustomHeader {
         const allColumns = this.agParams.columnApi.getAllGridColumns();
         const index = allColumns.indexOf(columns[columns.indexOf(this.agParams.column) - 1]);
         this.agParams.columnApi.moveColumn(this.agParams.column, index);
+        this.scope.$apply();
     }
 
     /** Move column 1 position right */
@@ -96,6 +89,12 @@ export class CustomHeader {
         const allColumns = this.agParams.columnApi.getAllGridColumns();
         const index = allColumns.indexOf(columns[columns.indexOf(this.agParams.column) + 1]);
         this.agParams.columnApi.moveColumn(this.agParams.column, index);
+        this.scope.$apply();
+    }
+
+    progressSort(event) {
+        this.agParams.progressSort(event.shiftKey);
+        this.scope.$apply();
     }
 }
 

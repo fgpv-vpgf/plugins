@@ -380,7 +380,7 @@ TableBuilder.prototype.tableOptions = {
     ensureDomOrder: true,
     defaultColDef: {
         width: 100
-    }
+    },
 };
 
 TableBuilder.prototype.id = 'fancyTable';

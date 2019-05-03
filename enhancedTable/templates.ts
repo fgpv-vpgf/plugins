@@ -254,7 +254,7 @@ export const PRINT_TABLE = (title, cols, rws) => {
                 </style>
             </head>
             <body class ='dt-print-view'>
-                <div class="title-container">
+                <div>
                     <h1 class="md-title" style='padding:8px;'>Features: ${title}</h1>
                     <table>${columns}${rows}</table>
                 </div>

@@ -29,7 +29,7 @@ export default class TableBuilder {
         });
 
         this.mapApi.ui.configLegend.elementRemoved.subscribe(legendBlock => {
-            if (legendBlock === this.panelManager.panel.panelStateManager.legendBlock) {
+            if (legendBlock === this.panelManager.legendBlock) {
                 this.panelManager.panel.close();
             }
         });

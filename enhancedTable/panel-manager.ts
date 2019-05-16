@@ -73,11 +73,12 @@ export class PanelManager {
         const that = this;
 
         enhancedTable.mouseover(() => {
-            $('.ag-body-viewport')[0].style.position = 'initial';
+            $('.ag-body-viewport')[0].style.position = 'static';
+            $('.ag-body-viewport')[0].style.overflowX = 'auto';
         })
 
         enhancedTable.mouseleave(() => {
-            $('.ag-body-viewport')[0].style.position = 'initial';
+            $('.ag-body-viewport')[0].style.position = 'static';
         })
 
         enhancedTable.on('keydown keyup', (event) => {
@@ -95,6 +96,10 @@ export class PanelManager {
                     // on esc key, clear focused cell
                     that.tableOptions.api.clearFocusedCell();
                 }
+                else if (focusedList !== document.activeElement && event.keyCode !== 9) {
+                    $('.ag-body-viewport')[0].style.overflowX = 'hidden';
+                    (<HTMLElement>document.activeElement).blur()
+                }
             } else {
                 that.tableOptions.api.clearFocusedCell();
             }
@@ -102,7 +107,7 @@ export class PanelManager {
             if ((event.keyCode !== 9 && event.keyCode !== 27) || ($('.element-focused')[0] === undefined && inList)) {
                 // if you are not tabbing or you are tabbing within a list or you're not pressing the escape key
                 // set body to be scrollable
-                $('.ag-body-viewport')[0].style.position = 'initial';
+                $('.ag-body-viewport')[0].style.position = 'static';
             } else {
                 // if you are tabbing between lists, body should be absolute
                 $('.ag-body-viewport')[0].style.position = 'absolute';
@@ -334,7 +339,7 @@ export class PanelManager {
         columns = columns ? columns : this.tableOptions.columnApi.getAllColumns();
         this.tableOptions.columnApi.autoSizeColumns(columns);
         columns.forEach(c => {
-        if (c.actualWidth > maxWidth) {
+            if (c.actualWidth > maxWidth) {
                 this.tableOptions.columnApi.setColumnWidth(c, maxWidth);
             }
         });

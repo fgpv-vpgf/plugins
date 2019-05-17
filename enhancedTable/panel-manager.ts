@@ -557,7 +557,8 @@ export class PanelManager {
                     // check if filter changed is the same as one applied to map
                     // if not, apply to map will be enabled
                     // else it will be disabled
-                    return getFiltersQuery() !== mapFilterQuery;
+                    // exclude global search query string from this (since that doesn't get applied to map)
+                    return filterModelToSql().join("AND") !== mapFilterQuery;
                 }
                 return false;
             };
@@ -565,19 +566,27 @@ export class PanelManager {
             // apply filters to map
             this.applyToMap = function () {
                 const filter = that.legendBlock.proxyWrapper.filterState;
-                mapFilterQuery = getFiltersQuery();
                 filter.setSql(filter.coreFilterTypes.GRID, mapFilterQuery);
                 that.filtersChanged = false;
                 that.hideToolTips();
             };
 
-            // get filter SQL qeury string
-            function getFiltersQuery() {
+            // get query string for current filtermodel
+            function filterModelToSql() {
                 const filterModel = that.tableOptions.api.getFilterModel();
                 let colStrs = [];
-                Object.keys(filterModel).forEach(col => {
+                Object.keys(filterModel).forEach(function (col) {
                     colStrs.push(filterToSql(col, filterModel[col]));
                 });
+                return colStrs;
+            }
+
+            // get filter query string
+            // convert global search to sql so that it filters the table
+            function getFiltersQuery() {
+
+                let colStrs = filterModelToSql();
+
                 if (that.searchText) {
                     const globalSearchVal = globalSearchToSql();
                     if (globalSearchVal) {
@@ -660,7 +669,8 @@ export class PanelManager {
                 let filteredColumns = [];
                 columns.forEach(column => {
                     for (let row of sortedRows) {
-                        if (re.test(row.data[column.colId].toUpperCase())) {
+                        const cellData = row.data[column.colId] === null ? null : row.data[column.colId].toString();
+                        if (cellData !== null && re.test(cellData.toUpperCase())) {
                             filteredColumns.push(`UPPER(${column.colId}) LIKE \'${filterVal}%\'`);
                         }
                     }

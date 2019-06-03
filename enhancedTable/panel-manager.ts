@@ -659,15 +659,17 @@ export class PanelManager {
                     .filter(column => column.colDef.filter === 'agTextColumnFilter');
                 columns.splice(0, 3);
                 let filteredColumns = [];
+                let seenColumns = [];
                 columns.forEach(column => {
                     for (let row of sortedRows) {
                         const cellData = row.data[column.colId] === null ? null : row.data[column.colId].toString();
-                        if (cellData !== null && re.test(cellData.toUpperCase())) {
+                        if (cellData !== null && re.test(cellData.toUpperCase()) && seenColumns.indexOf(column.colId) == -1) {
                             filteredColumns.push(`UPPER(${column.colId}) LIKE \'${filterVal}%\'`);
+                            seenColumns.push(column.colId);
                         }
                     }
                 });
-                return filteredColumns.join(' AND ');
+                return filteredColumns.join(' OR ');
             }
         });
 

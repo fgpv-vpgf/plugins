@@ -583,7 +583,7 @@ export class PanelManager {
                     const globalSearchVal = globalSearchToSql() !== '' ? globalSearchToSql() : '1=2';
                     if (globalSearchVal) {
                         // do not push an empty global search
-                        colStrs.push(globalSearchVal);
+                        colStrs.push('('+globalSearchVal+')');
                     }
                 }
                 return colStrs.join(' AND ');
@@ -664,10 +664,11 @@ export class PanelManager {
                         const cellData = row.data[column.colId] === null ? null : row.data[column.colId].toString();
                         if (cellData !== null && re.test(cellData.toUpperCase())) {
                             filteredColumns.push(`UPPER(${column.colId}) LIKE \'${filterVal}%\'`);
+                            return;
                         }
                     }
                 });
-                return filteredColumns.join(' AND ');
+                return filteredColumns.join(' OR ');
             }
         });
 

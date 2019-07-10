@@ -171,7 +171,7 @@ export default class TableBuilder {
                         floatingFilterComponentParams: { suppressFilterButton: true, mapApi: this.mapApi },
                         floatingFilterComponent: undefined,
                         cellRenderer: function (cell) {
-                            return cell.value;
+                            return cell.value ? (typeof cell.value === 'object' ? 'Complex Value' : cell.value) : '';
                         },
                         suppressSorting: false,
                         suppressFilter: column.searchDisabled,

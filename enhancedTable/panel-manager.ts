@@ -491,7 +491,6 @@ export class PanelManager {
             // Sync filterByExtent
             this.filterExtentToggled = function () {
                 that.panelStateManager.filterByExtent = this.filterByExtent;
-
                 // On toggle, filter by extent or remove the extent filter
                 if (that.panelStateManager.filterByExtent) {
                     that.panelRowsManager.filterByExtent(that.mapApi.mapI.extent);
@@ -571,7 +570,7 @@ export class PanelManager {
                 that.hideToolTips();
             };
 
-            // get filter SQL qeury string
+            // get filter SQL query string
             function getFiltersQuery() {
                 const filterModel = that.tableOptions.api.getFilterModel();
                 let colStrs = [];
@@ -598,6 +597,8 @@ export class PanelManager {
                         } else {
                             let val = colFilter.filter.replace(/'/g, /''/);
                             if (val !== '') {
+                                // replace col filter % char with [%] to distinguish from the meaningful % SQL character
+                                val = val.replace(/[%]/g, '[$&]');
                                 if (that.configManager.lazyFilterEnabled) {
                                     const filterVal = `*${val}`;
                                     val = filterVal.split(' ').join('*');

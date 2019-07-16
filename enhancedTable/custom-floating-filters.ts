@@ -215,9 +215,14 @@ export class TextFloatingFilter {
 
     /** Helper function to determine filter model */
     getModel(): any {
+        let newFilter = this.scope.input;
+        if (newFilter) {
+            const escRegex = /[(!"#$%&\'+,.\\\/:;<=>?@[\]^`{|}~)]/g;
+            newFilter = newFilter.replace(escRegex, '\\$&');
+        }
         return {
             type: 'contains',
-            filter: this.scope.input
+            filter: newFilter
         }
     }
 

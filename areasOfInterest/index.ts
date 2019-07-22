@@ -54,8 +54,14 @@ class AreasOfInterest {
     }
 
     onMenuItemClick() {
+        const that = this;
+        function openPanel() {
+            that._RV.toggleSideNav('close');
+            that.panel.open();
+        }
+
         return () => {
-            this.button.isActive ? this.panel.close() : this.panel.open();
+            this.button.isActive ? this.panel.close() : openPanel();
         };
     }
 
@@ -88,7 +94,6 @@ class AreasOfInterest {
         this.panel.header.title = 'plugins.areasOfInterest.title';
 
         this.panel.body = bodyElement;
-        this.panel.open();
     }
 }
 

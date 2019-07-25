@@ -144,24 +144,6 @@ class CoordInfo {
             })
         );
 
-        // Magnetic declination service is only available in http
-        if (window.location.protocol === 'http:') {
-            promises.push(
-                new Promise(resolve => {
-                    $.ajax({
-                        url: this.urls.decli,
-                        cache: true,
-                        data: { latitude: pt.y, longitude: pt.x, date: date, format: 'json' },
-                        dataType: 'jsonp',
-                        success: data => resolve(this.parseDecli(data, lang)),
-                        error: () => {
-                            resolve(undefined);
-                        }
-                    });
-                })
-            );
-        }
-
         // wait for all promises to resolve then show info
         Promise.all(promises).then(values => {
             this.generateOutput(values, pt, dms, date);

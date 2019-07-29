@@ -155,6 +155,41 @@ export class PanelManager {
             }
             this.tableOptions = tableOptions;
 
+            // create tooltips on cell focus when appropriate
+            this.tableOptions.onCellFocused = (cell) => {
+                if (cell.rowIndex !== null) {
+                    const focusedCell = <HTMLElement>$(`[row-index=${cell.rowIndex}]`).find(`[col-id=${cell.column.colId}]`)[0];
+                    const focusedCellText = <HTMLElement>focusedCell.children[0];
+
+                    if (focusedCellText.offsetWidth > focusedCell.offsetWidth) {
+
+                        const positionTooltip = () => {
+                            const tooltip = $('.rv-render-tooltip')[0];
+                            const topMargin = $(focusedCell).offset().top - $(tooltip).offset().top;
+                            const topLeft = $(focusedCell).offset().left - $(tooltip).offset().left;
+                            const overlayBottom = $('.ag-overlay').position().top + $('.ag-overlay').height();
+
+                            // position the tooltip so that it is associated with the focused cell
+                            tooltip.style.top = `${topMargin + 20}px`;
+                            tooltip.style.left = `${topLeft}px`;
+
+                            if (tooltip.offsetTop + $(tooltip).height() > overlayBottom - 20) {
+                                // position the tooltip so that it stays within the grid
+                                tooltip.style.bottom = '20px';
+                            }
+                        }
+
+                        // if the cell text is not  contained within newly focused cell, create an overlay tooltip which shows full text
+                        this.tableOptions.overlayNoRowsTemplate = `<span class='rv-render-tooltip'>${focusedCellText.innerHTML}</span>`;
+                        this.tableOptions.api.showNoRowsOverlay();
+                        positionTooltip();
+                    } else {
+                        // if a text is contained within newly focused cell, hide any overlay tooltips
+                        this.tableOptions.api.hideOverlay();
+                    }
+                }
+            }
+
             // set filter change flag to true
             this.tableOptions.onFilterChanged = event => {
                 this.sizeColumnsToFitIfNeeded();
@@ -611,7 +646,7 @@ export class PanelManager {
                                     // update all variables after finding an escaped special char, preserving all text except the backslash
                                     newVal = newVal + val.substr(lastIdx, escMatch.index - lastIdx) + escMatch[0].slice(-1);
                                     lastIdx = escMatch.index + 2;
-                                    remVal =  val.substr(escMatch.index + 2);
+                                    remVal = val.substr(escMatch.index + 2);
                                     escMatch = escRegex.exec(val);
                                 }
                                 newVal = newVal + remVal;

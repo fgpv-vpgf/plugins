@@ -3732,6 +3732,32 @@ md-datepicker > div {
 .rv-sort-arrow {
   flex-shrink: 0; }
 
+.ag-cell-focus {
+  overflow: visible !important; }
+  .ag-cell-focus .rv-render-ellipsis {
+    max-height: rem(8.8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: list-item; }
+  .ag-cell-focus .rv-render-tooltip {
+    display: block;
+    position: absolute;
+    border: 1px solid #D3D3D3;
+    background-color: #F2F2F2;
+    padding: 2px 5px;
+    box-shadow: 1px 1px 2px #CCC;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.5;
+    top: 20px;
+    left: -1px;
+    width: inherit;
+    text-align: center; }
+
+.rv-render-tooltip {
+  display: none; }
+
 .enhanced-table-details,
 .enhanced-table-zoom {
   margin: 0 !important; }

@@ -155,6 +155,20 @@ export class PanelManager {
             }
             this.tableOptions = tableOptions;
 
+            // create tooltips on cell focus when appropriate
+            this.tableOptions.onCellFocused = (cell) => {
+                if (cell.rowIndex !== null) {
+                    const focusedCell = <HTMLElement>$(`[row-index=${cell.rowIndex}]`).find(`[col-id=${cell.column.colId}]`)[0];
+                    const focusedCellText = <HTMLElement>focusedCell.children[0]
+                    if (focusedCellText.offsetWidth > focusedCell.offsetWidth && !$(focusedCellText).hasClass('rv-render-ellipsis')) {
+                        // if the cell text isn't contained within the cell, create a tooltip which shows full text on cell focus
+                        // only add tooltip if not already added to cell
+                        $(focusedCellText).addClass('rv-render-ellipsis');
+                        $(focusedCell).append(`<span class='rv-render-tooltip'>${focusedCellText.innerHTML}</span>`)
+                    }
+                }
+            }
+
             // set filter change flag to true
             this.tableOptions.onFilterChanged = event => {
                 this.sizeColumnsToFitIfNeeded();

@@ -138,9 +138,9 @@ export class PanelManager {
                 }
             });
 
-            // add rv-focus-item class to each table cell
+            // add rv-focus-item class and selectable class to each table cell
             panelBody.find('.ag-cell').each((index, cell) => {
-                $(cell).addClass('rv-focus-item');
+                $(cell).addClass('rv-focus-item rv-selectable');
             });
         })
     }

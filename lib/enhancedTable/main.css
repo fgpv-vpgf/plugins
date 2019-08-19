@@ -3742,7 +3742,6 @@ md-datepicker > div {
   white-space: normal;
   word-wrap: break-word;
   line-height: 1.5;
-  top: 20px;
   left: -1px;
   max-width: 250px;
   overflow: hidden; }

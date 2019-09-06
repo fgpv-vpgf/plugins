@@ -244,7 +244,7 @@ export default class TableBuilder {
             }
 
             // Set menu defaults from config
-            this.tableOptions.floatingFilter = this.panelManager.panelStateManager.showFilter;
+            this.tableOptions.floatingFilter = true;
 
             this.panelManager.open(this.tableOptions, attrBundle.layer, this);
             this.tableApi = this.tableOptions.api;
